@@ -1,0 +1,80 @@
+*{
+    font-family: Consolas, sans-serif;
+}
+
+.container{
+    display: grid;
+    grid-template-rows: 1fr 4fr;
+    gap: 1em;
+}
+
+.header{
+    text-align: center;
+    grid-row: 1/2;
+    border: 1px solid black;
+    border-radius: 20px;
+}
+
+.game{
+    grid-row: 2/3;
+    border: 1px solid black;
+    border-radius: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1em;
+    padding: 1em;
+    justify-content: space-between;
+}
+
+.player1{
+    grid-column: 1/2;
+    max-width: 150px;
+    border: 1px solid black;
+    border-radius: 20px;
+    padding: 1em;
+    color: red
+}
+
+h2{
+    text-align: center;
+}
+
+.board{
+    min-width: 100px;
+    grid-column: 2/3;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 0;
+    aspect-ratio: 1/1;
+}
+
+.cell{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+#c0,#c1,#c3,#c4{
+    border-right: 2px solid black;
+    border-bottom: 2px solid black;
+}
+#c2,#c5{
+    border-bottom: 2px solid black;
+}
+#c6,#c7{
+    border-right: 2px solid black;
+}
+
+
+.player2{
+    max-width: 150px;
+    grid-column: 3/4;
+    border: 1px solid black;
+    border-radius: 20px;
+    padding: 1em;
+    justify-self: end;
+    color: blue;
+}
