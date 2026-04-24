@@ -27,8 +27,10 @@
 }
 
 .player1{
-    grid-column: 1/2;
+    min-width: 120px;
     max-width: 150px;
+    max-height: 150px;
+    grid-column: 1/2;
     border: 1px solid black;
     border-radius: 20px;
     padding: 1em;
@@ -70,7 +72,9 @@ h2{
 
 
 .player2{
+    min-width: 120px;
     max-width: 150px;
+    max-height: 150px;
     grid-column: 3/4;
     border: 1px solid black;
     border-radius: 20px;

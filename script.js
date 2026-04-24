@@ -1,5 +1,15 @@
-const readline = require('node:readline/promises');
-const { stdin: input, stdout: output } = require('node:process');
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const nRounds = 5
+let actualRound = 1
+const player1 = document.querySelector('.player1')
+const player2 = document.querySelector('.player2')
+const p1score = document.querySelector('.p1score')
+const p2score = document.querySelector('.p2score')
+const htmlRound = document.querySelector('.nRound')
+htmlRound.textContent = 'Round: ' + actualRound + '/' + nRounds
+
+const cells = document.querySelectorAll('.cell');
+
 
 class Cell{
     cellNumber;
@@ -29,15 +39,74 @@ class Board{
 }
 
 class Player{
-    name;
     score;
-    constructor(name){
-        this.name = name;
+    constructor(){
         this.score = 0;
     }
 }
 
-async function round(player1, player2, i, rl){
+function highlightPlayer(player,state){
+
+    if(state === 'turn'){
+        if(player===1){
+            // Highlight player 1 - // Restore player 2
+            player1.style.border = '4px solid red';
+            player2.style.border = '';
+        } else if(player===2){
+            // Highlight player 2 - // Restore player 1
+            player2.style.border = '4px solid blue';
+            player1.style.border = '';
+        }
+    } else if(state === 'victory'){
+        if(player===1){
+            // Highlight player 1 - // Restore player 2
+            player1.style.border = '5px solid red';
+            player2.style.border = '';
+        } else if(player===2){
+            // Highlight player 2 - // Restore player 1
+            player2.style.border = '5px solid blue';
+            player1.style.border = '';
+        }
+    }
+
+}
+
+async function cellSelection() {
+    // Restituiamo una Promise che si risolve solo quando una cella viene cliccata
+    return new Promise((resolve) => {
+        const cells = document.querySelectorAll('.cell');
+
+        // Funzione interna per gestire il click
+        const handleClick = (event) => {
+            // 1. Rimuoviamo l'ascoltatore da tutte le celle (per terminare l'ascolto)
+            cells.forEach(cell => cell.removeEventListener('click', handleClick));
+
+            // 2. Risolviamo la Promise passando la cella cliccata
+            resolve(event.target.id);
+        };
+
+        // Aggiungiamo l'ascoltatore a ogni cella
+        cells.forEach(cell => cell.addEventListener('click', handleClick));
+    });
+}
+
+function refreshBoard(boardCells){
+
+    boardCells.forEach(cell => {
+        const htmlCell = document.querySelector('#c'+ cell.cellNumber);
+        if(cell.state === 'O'){
+            htmlCell.style.color = 'red'
+            htmlCell.innerText = 'O';
+        } else if(cell.state === 'X'){
+            htmlCell.style.color = 'blue'
+            htmlCell.innerText = 'X';
+        }
+    });
+
+
+}
+
+async function round(player1, player2, i){
     const board = new Board();
     let roundOver = false;
     console.log(`---`)
@@ -47,14 +116,15 @@ async function round(player1, player2, i, rl){
     let player;
 
     if (Math.random() < 0.5){
-        console.log(`Player 1 : ${player1.name} starts`);
+        console.log(`Player 1 starts`);
         player = 1;
     } else {
-        console.log(`Player 2 : ${player2.name} starts`);
+        console.log(`Player 2 starts`);
         player = 2;
     }
 
     while(!roundOver){
+        highlightPlayer(player,'turn')
         let move = false;
         while(!move){
             // Mostro la Board
@@ -64,8 +134,8 @@ async function round(player1, player2, i, rl){
             console.log(`|${board.cells[3].state}|${board.cells[4].state}|${board.cells[5].state}|`);
             console.log(`|${board.cells[6].state}|${board.cells[7].state}|${board.cells[8].state}|`);
 
-            let cell = await rl.question(`Player ${player} choose a cell: `);
-            cell = parseInt(cell)
+            let cellSelected = await cellSelection()
+            cell = parseInt(cellSelected.slice(1))
             if(board.availableCells.includes(cell)){
                 // Rimuovo la cella da quelle disponibili
                 board.availableCells = board.availableCells.filter(cellNumber => cellNumber !== cell);
@@ -75,6 +145,7 @@ async function round(player1, player2, i, rl){
                 } else {
                     board.cells[cell].state = "X"
                 }
+                refreshBoard(board.cells)
                 move = true;
             } else {
                 console.log(`Cell can not be played!`);
@@ -92,11 +163,48 @@ async function round(player1, player2, i, rl){
         }
     }
 
-    console.log(`Player 1 ${player1.name} score: ${player1.score}`);
-    console.log(`Player 2 ${player2.name} score: ${player2.score}`);
+    console.log(`Player 1 score: ${player1.score}`);
+    console.log(`Player 2 score: ${player2.score}`);
 
     console.log(`Round ${i+1} END`)
     console.log(`---`)
+}
+
+function updateScore(player){
+
+    if(player === 1){
+        let currentText = p1score.textContent;
+        let currentScore = parseInt(currentText.at(-1));
+        let newScore = currentScore +=1;
+        p1score.textContent = currentText.slice(0, -1) + newScore.toString();
+    } else if(player === 2){
+        let currentText = p2score.textContent;
+        let currentScore = parseInt(currentText.at(-1));
+        let newScore = currentScore +=1;
+        p2score.textContent = currentText.slice(0, -1) + newScore.toString();
+    }
+
+    // Update Round
+    if (actualRound <nRounds){
+        actualRound += 1
+
+    }
+    htmlRound.textContent = 'Round: ' + actualRound + '/' + nRounds
+
+}
+
+function clearBoard(){
+    cells.forEach(cell => {
+        cell.textContent = '';
+    });
+
+}
+
+async function victory(player){
+    highlightPlayer(player,'victory')
+    updateScore(player)
+    await wait(1000);
+    clearBoard()
 }
 
 function checkWinner(board,player1,player2){
@@ -104,78 +212,94 @@ function checkWinner(board,player1,player2){
     // Linee orizzontali
     if(board.cells[0].state === "O" && board.cells[1].state === "O" && board.cells[2].state === "O"){
         player1.score += 1;
-        console.log(`Player 1 : ${player1.name} won!`);
+        console.log(`Player 1 won!`);
+        victory(1)
         return true;
     } else if(board.cells[0].state === "X" && board.cells[1].state === "X" && board.cells[2].state === "X"){
         player2.score += 1;
-        console.log(`Player 2 : ${player2.name} won!`);
+        console.log(`Player 2 won!`);
+        victory(2)
         return true;
     }
     if(board.cells[3].state === "O" && board.cells[4].state === "O" && board.cells[5].state === "O"){
         player1.score += 1;
-        console.log(`Player 1 : ${player1.name} won!`);
+        console.log(`Player 1 won!`);
+        victory(1)
         return true;
     } else if(board.cells[3].state === "X" && board.cells[4].state === "X" && board.cells[5].state === "X"){
         player2.score += 1;
-        console.log(`Player 2 : ${player2.name} won!`);
+        console.log(`Player 2 won!`);
+        victory(2)
         return true;
     }
     if(board.cells[6].state === "O" && board.cells[7].state === "O" && board.cells[8].state === "O"){
         player1.score += 1;
-        console.log(`Player 1 : ${player1.name} won!`);
+        console.log(`Player 1 won!`);
+        victory(1)
         return true;
     } else if(board.cells[6].state === "X" && board.cells[7].state === "X" && board.cells[8].state === "X"){
         player2.score += 1;
-        console.log(`Player 2 : ${player2.name} won!`);
+        console.log(`Player 2 won!`);
+        victory(2)
         return true;
     }
 
     // Linee verticali
     if(board.cells[0].state === "O" && board.cells[3].state === "O" && board.cells[6].state === "O"){
         player1.score += 1;
-        console.log(`Player 1 : ${player1.name} won!`);
+        console.log(`Player 1 won!`);
+        victory(1)
         return true;
     } else if(board.cells[0].state === "X" && board.cells[3].state === "X" && board.cells[6].state === "X"){
         player2.score += 1;
-        console.log(`Player 2 : ${player2.name} won!`);
+        console.log(`Player 2 won!`);
+        victory(2)
         return true;
     }
     if(board.cells[1].state === "O" && board.cells[4].state === "O" && board.cells[7].state === "O"){
         player1.score += 1;
-        console.log(`Player 1 : ${player1.name} won!`);
+        console.log(`Player 1 won!`);
+        victory(1)
         return true;
     } else if(board.cells[1].state === "X" && board.cells[4].state === "X" && board.cells[7].state === "X"){
         player2.score += 1;
-        console.log(`Player 2 : ${player2.name} won!`);
+        console.log(`Player 2 won!`);
+        victory(2)
         return true;
     }
     if(board.cells[2].state === "O" && board.cells[5].state === "O" && board.cells[8].state === "O"){
         player1.score += 1;
-        console.log(`Player 1 : ${player1.name} won!`);
+        console.log(`Player 1 won!`);
+        victory(1)
         return true;
     } else if(board.cells[2].state === "X" && board.cells[5].state === "X" && board.cells[8].state === "X"){
         player2.score += 1;
-        console.log(`Player 2 : ${player2.name} won!`);
+        console.log(`Player 2 won!`);
+        victory(2)
         return true;
     }
 
     // Diagonali
     if(board.cells[0].state === "O" && board.cells[4].state === "O" && board.cells[8].state === "O"){
         player1.score += 1;
-        console.log(`Player 1 : ${player1.name} won!`);
+        console.log(`Player 1 won!`);
+        victory(1)
         return true;
     } else if(board.cells[0].state === "X" && board.cells[4].state === "X" && board.cells[8].state === "X"){
         player2.score += 1;
-        console.log(`Player 2 : ${player2.name} won!`);
+        console.log(`Player 2 won!`);
+        victory(2)
         return true;
     }
     if(board.cells[2].state === "O" && board.cells[4].state === "O" && board.cells[6].state === "O"){
         player1.score += 1;
-        console.log(`Player 1 : ${player1.name} won!`);
+        console.log(`Player 1 won!`);
+        victory(1)
         return true;
     } else if(board.cells[2].state === "X" && board.cells[4].state === "X" && board.cells[6].state === "X"){
         player2.score += 1;
-        console.log(`Player 2 : ${player2.name} won!`);
+        console.log(`Player 2 won!`);
+        victory(2)
         return true;
     }
 
@@ -184,26 +308,16 @@ function checkWinner(board,player1,player2){
 
 async function game() {
     console.log("Game Start");
-    const rl = readline.createInterface({ input, output });
-    const nRounds = 3
     const player1 = new Player();
     const player2 = new Player();
-    //player1.name = prompt("Insert Player 1 (O) Name:");
-    player1.name = "Mario";
-    console.log(player1.name);
-    // player2.name = prompt("Insert Player 2 (X) Name:");
-    player2.name = "Luigi";
-    console.log(player2.name);
 
     for (let i = 0; i < nRounds; i++) {
-        await round(player1, player2, i, rl);
+        await round(player1, player2, i);
         if(player1.score > nRounds/2){
-            console.log(`Player 1 : ${player1.name} WON THE GAME!`);
-            rl.close();
+            console.log(`Player 1 WON THE GAME!`);
             return
         } else if(player2.score > nRounds/2){
-            console.log(`Player 2 : ${player2.name} WON THE GAME!`);
-            rl.close();
+            console.log(`Player 2 WON THE GAME!`);
             return
         }
     }
